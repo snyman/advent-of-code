@@ -7,7 +7,8 @@ main = do
   putStrLn $ show $ countIncreasedWindows $ map read $ lines measurements
 
 countIncreasedWindows :: [Int] -> Int
-countIncreasedWindows = snd . foldl (\(prev, count) current -> (current, if windowSum current > windowSum prev then count + 1 else count)) (maxBound, 0) . toWindows
+countIncreasedWindows = snd . foldl f (maxBound, 0) . toWindows
+  where f (prev, count) current = (current, if windowSum current > windowSum prev then count + 1 else count)
 
 type Window = (Int, Int, Int)
 
