@@ -4,7 +4,16 @@
 main :: IO ()
 main = do
   measurements <- getContents
-  putStrLn $ show $ countIncreasedPings $ map read $ lines measurements
+  putStrLn $ show $ countIncreasedWindows $ map read $ lines measurements
 
-countIncreasedPings :: [Int] -> Int
-countIncreasedPings = snd . foldl (\(prev, count) current -> (current, if current > prev then count + 1 else count)) (maxBound, 0)
+countIncreasedWindows :: [Int] -> Int
+countIncreasedWindows = snd . foldl (\(prev, count) current -> (current, if windowSum current > windowSum prev then count + 1 else count)) (maxBound, 0) . toWindows
+
+type Window = (Int, Int, Int)
+
+toWindows :: [Int] -> [Window]
+toWindows (a:b:c:xs) = (a, b, c) : toWindows (b:c:xs)
+toWindows _ = []
+
+windowSum :: Window -> Int
+windowSum (a, b, c) = a + b + c
