@@ -3,8 +3,8 @@
 
 main :: IO ()
 main = do
-  directions <- getContents
-  let (horizontal, depth, aim) = navigateSub $ map readMovement $ lines directions
+  directions <- getContents >>= return . lines
+  let (horizontal, depth, aim) = navigateSub $ map readMovement $ directions
   putStrLn $ "Horizontal: " ++ (show horizontal)
   putStrLn $ "Depth: " ++ (show depth)
   putStrLn $ "Aim: " ++ (show aim)

@@ -3,8 +3,8 @@
 
 main :: IO ()
 main = do
-  measurements <- getContents
-  putStrLn $ show $ countIncreasedWindows $ map read $ lines measurements
+  measurements <- getContents >>= return . lines
+  putStrLn $ show $ countIncreasedWindows $ map read $ measurements
 
 countIncreasedWindows :: [Int] -> Int
 countIncreasedWindows = snd . foldl f (maxBound, 0) . toWindows
