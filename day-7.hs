@@ -12,7 +12,11 @@ parseCrabs :: String -> [Int]
 parseCrabs = map read . splitOn ","
 
 computeFuel :: Int -> [Int] -> Int
-computeFuel d = foldl (\td c -> td + abs (c - d)) 0
+computeFuel d = foldl (\td c -> td + computeSingleFuel d c) 0
+
+computeSingleFuel :: Int -> Int -> Int
+computeSingleFuel d c = round (n * (n + 1) / 2)
+  where n = fromIntegral(abs (c - d))
 
 findMinFuel :: [Int] -> (Int, Int)
 findMinFuel cs = foldl1 minMove possibleMoves
