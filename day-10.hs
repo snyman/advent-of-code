@@ -8,7 +8,8 @@ import Data.Either
 main :: IO ()
 main = do
   input <- fmap lines getContents
-  putStrLn $ show $ inputScore input
+  putStrLn $ show $ scoreErrors input
+  putStrLn $ show $ scoreChunks input
 
 type ParseResult = Either Int
 
@@ -32,5 +33,21 @@ errorScore ']' = 57
 errorScore '}' = 1197
 errorScore '>' = 25137
 
-inputScore :: [String] -> Int
-inputScore = sum . lefts . (map parseChunks)
+scoreErrors :: [String] -> Int
+scoreErrors = sum . lefts . (map parseChunks)
+
+scoreChunk :: [Char] -> Int
+scoreChunk s = foldl addBracketScore 0 s
+  where addBracketScore score c = score * 5 + completionScore c
+
+completionScore :: Char -> Int
+completionScore '(' = 1
+completionScore '[' = 2
+completionScore '{' = 3
+completionScore '<' = 4
+
+scoreChunks :: [String] -> Int
+scoreChunks ss = scores !! mid
+  where
+    scores = sort $ map scoreChunk $ rights $ map parseChunks ss
+    mid = floor $ (fromIntegral $ length scores) / 2
