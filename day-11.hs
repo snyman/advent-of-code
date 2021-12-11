@@ -12,6 +12,7 @@ main = do
   octos <- fmap parseInput getContents
   putStrLn $ show $ octos
   putStrLn $ show $ runSteps octos 100
+  putStrLn $ show $ findSynchroPoint octos 1
 
 type Octo = Either Int Int
 type OctoMap = Array (Int, Int) Octo
@@ -70,3 +71,10 @@ runStep (m, f) = let
 
 runSteps :: OctoMap -> Int -> (OctoMap, Int)
 runSteps m n = foldl (\mf _ -> runStep mf) (m, 0) [1..n]
+
+findSynchroPoint :: OctoMap -> Int -> Int
+findSynchroPoint m step =
+  let (m', flashes) = runStep (m, 0) in
+  if flashes == length m
+    then step
+    else findSynchroPoint m' step + 1
