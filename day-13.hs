@@ -12,16 +12,22 @@ main = do
   let firstFold = foldDots dots (folds !! 0)
   putStrLn $ show $ firstFold
   putStrLn $ show $ S.size firstFold
+  let fullFold = foldl foldDots dots folds
+  printDots fullFold
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
   where (a:b:c) = splitOn delim s
 
-data Fold = Vert { x :: Int } | Horiz { y :: Int } deriving (Eq, Show)
-type Dots = S.Set (Int, Int)
+newtype Point = Point { pt :: (Int, Int) } deriving (Eq, Show)
+instance Ord Point where
+  compare (Point (x1, y1)) (Point (x2, y2)) = compare (y1, x1) (y2, x2)
 
-parseDot :: String -> (Int, Int)
-parseDot s = (read x, read y)
+data Fold = Vert { x :: Int } | Horiz { y :: Int } deriving (Eq, Show)
+type Dots = S.Set Point
+
+parseDot :: String -> Point
+parseDot s = Point (read x, read y)
   where (x, y) = biSplit "," s
 
 parseDots :: [String] -> Dots
@@ -43,16 +49,28 @@ parseInput :: String -> (Dots, [Fold])
 parseInput ss = (parseDots dotLines, parseFolds foldLines)
   where (dotLines, foldLines) = biSplit [""] $ lines ss
 
-foldX :: Int -> (Int, Int) -> (Int, Int)
-foldX x' (x, y) =
-  if x > x' then (2*x' - x, y)
-  else (x, y)
+foldX :: Int -> Point -> Point
+foldX x' pt@(Point (x, y)) =
+  if x > x' then Point (2*x' - x, y)
+  else pt
 
-foldY :: Int -> (Int, Int) -> (Int, Int)
-foldY y' (x, y) =
-  if y > y' then (x, 2*y' - y)
-  else (x, y)
+foldY :: Int -> Point -> Point
+foldY y' pt@(Point (x, y)) =
+  if y > y' then Point (x, 2*y' - y)
+  else pt
 
 foldDots :: Dots -> Fold -> Dots
 foldDots ds (Vert x) = S.map (foldX x) ds
 foldDots ds (Horiz y) = S.map (foldY y) ds
+
+showDot :: Dots -> Point -> Char
+showDot ds pt = if pt `elem` ds then '#' else ' '
+
+printDotLn :: Dots -> Int -> Int -> IO ()
+printDotLn ds maxX y = putStrLn $ [showDot ds (Point (x, y)) | x <- [0..maxX]]
+
+printDots :: Dots -> IO ()
+printDots ds = mapM_ (printDotLn ds maxX) [0..maxY]
+  where
+    maxX = maximum $ S.map (fst . pt) ds
+    maxY = maximum $ S.map (snd . pt) ds
