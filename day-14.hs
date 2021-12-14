@@ -15,12 +15,18 @@ main = do
   showStep init rules 3
   showStep init rules 4
   showStep init rules 10
+  let count40 = calculate rules 40 init
+  let (minC, minN) = minPair count40
+  let (maxC, maxN) = maxPair count40
+  putStrLn $ show $ ((minC, minN), (maxC, maxN))
+  putStrLn $ show $ maxN - minN
 
 showStep :: String -> Rules -> Int -> IO ()
 showStep init rules n = do
   let genN = generate rules n init
   putStrLn $ genN
   let mm@((minC, minN), (maxC, maxN)) = minMax genN
+  putStrLn $ show $ M.fromListWith (+) $ zip genN $ repeat 1
   putStrLn $ show $ mm
   putStrLn $ show $ maxN - minN
 
@@ -52,8 +58,22 @@ pairwise [a,b] = [[a,b]]
 pairwise (a:b:c) = [a,b]:pairwise (b:c)
 
 minMax :: String -> ((Char, Int), (Char, Int))
-minMax s = (min, max)
+minMax s = (minPair counts, maxPair counts)
   where
-    counts = M.assocs $ M.fromListWith (+) $ zip s $ repeat 1
-    min = minimumBy (\(_, n) (_, n') -> compare n n') counts
-    max = maximumBy (\(_, n) (_, n') -> compare n n') counts
+    counts = M.fromListWith (+) $ zip s $ repeat 1
+
+minPair :: M.Map Char Int -> (Char, Int)
+minPair = minimumBy (\(_, n) (_, n') -> compare n n') . M.assocs
+
+maxPair :: M.Map Char Int -> (Char, Int)
+maxPair = maximumBy (\(_, n) (_, n') -> compare n n') . M.assocs
+
+calculate :: Rules -> Int -> String -> M.Map Char Int
+calculate r n s@(h:_) = flatten $ foldl (\m _ -> expand m) init [1..n]
+  where
+    init = M.fromListWith (+) $ zip (pairwise s) (repeat 1)
+    expand m = M.fromListWith (+) $ concatMap expand1 $ M.assocs m
+    expand1 (s@[a,b], n) = [([a,c], n), ([c, b], n)]
+      where [c] = r M.! s
+    flatten m = M.fromListWith (+) $ (h,1):(map flatten1 $ M.assocs m)
+    flatten1 ([_, b], n) = (b, n)
