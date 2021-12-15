@@ -14,6 +14,10 @@ main = do
   let path = aStar risk
   putStrLn $ show $ path
   putStrLn $ show $ (totalRisk <$> (Just risk) <*> path)
+  let expanded = expand risk 5
+  let expandedPath = aStar expanded
+  putStrLn $ show $ expandedPath
+  putStrLn $ show $ (totalRisk <$> (Just expanded) <*> expandedPath)
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
@@ -28,6 +32,20 @@ parseInput s = array ((1,1), (colCount, rowCount)) $ concat [[ ((x, y), read $ i
     rows@(first:_) = lines s
     rowCount = length rows
     colCount = length first
+
+expand :: RiskMap -> Int -> RiskMap
+expand risk n = array ((1,1), (colCount, rowCount)) $ concat [[((x, y), valAt (x, y)) | x <- [1..colCount]] | y <- [1..rowCount]]
+  where
+    (_, (cols, rows)) = bounds risk
+    rowCount = rows * n
+    colCount = cols * n
+    valAt (x, y) =
+      let tileX = floor (fromIntegral (x-1) / fromIntegral cols)
+          tileY = floor (fromIntegral (y-1) / fromIntegral rows)
+          origX = x - (tileX * cols)
+          origY = y - (tileY * rows)
+          unboundVal = (risk ! (origX, origY)) - 1 + tileX + tileY
+      in (unboundVal `mod` 9) + 1
 
 type Score = M.Map Coord Int
 
