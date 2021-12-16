@@ -10,30 +10,39 @@ import Control.Monad.State
 testConst = "D2FE28"
 testSubPacketByLength = "38006F45291200"
 testSubPacketByCount = "EE00D40C823060"
-testWithSum16 = "8A004A801A8002F478"
-testWithSum12 = "620080001611562C8802118E34"
-testWithSum23 = "C0015000016115A2E0802F182340"
-testWithSum31 = "A0016C880162017C3686B18A3D4780"
 
 main :: IO ()
 main = do
   run testConst
   run testSubPacketByLength
   run testSubPacketByCount
-  test testWithSum16 16
-  test testWithSum12 12
-  test testWithSum23 23
-  test testWithSum31 31
+  testVer "8A004A801A8002F478" 16
+  testVer "620080001611562C8802118E34" 12
+  testVer "C0015000016115A2E0802F182340" 23
+  testVer "A0016C880162017C3686B18A3D4780" 31
+  testVal "C200B40A82" 3
+  testVal "04005AC33890" 54
+  testVal "880086C3E88112" 7
+  testVal "CE00C43D881120" 9
+  testVal "D8005AC2A8F0" 1
+  testVal "F600BC2D8F" 0
+  testVal "9C005AC2F8F0" 0
+  testVal "9C0141080250320F1802104A08" 1
   input <- getContents
   run input
   return ()
 
-test :: String -> Int -> IO ()
-test s n = do
-  sumVersion <- run s
+testVer :: String -> Int -> IO ()
+testVer s n = do
+  (sumVersion, _) <- run s
   if n == sumVersion then putStrLn "Passed" else putStrLn ("Failed: (Expected, Actual)" ++ (show (n, sumVersion)))
 
-run :: String -> IO Int
+testVal :: String -> Int -> IO ()
+testVal s n = do
+  (_, val) <- run s
+  if n == val then putStrLn "Passed" else putStrLn ("Failed: (Expected, Actual)" ++ (show (n, val)))
+
+run :: String -> IO (Int, Int)
 run s = do
   let bits = parseHex s
   putStrLn $ show bits
@@ -41,7 +50,9 @@ run s = do
   putStrLn $ show $ (packet, remainder)
   let sumVersion = sumVersions packet
   putStrLn $ show $ sumVersion
-  return sumVersion
+  let val = evalPacket packet
+  putStrLn $ show val
+  return (sumVersion, val)
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
@@ -84,6 +95,16 @@ type Parser = State [Bit]
 sumVersions :: Packet -> Int
 sumVersions (Const _ ver) = ver
 sumVersions (Op _ ver sub) = ver + (sum $ map sumVersions sub)
+
+evalPacket :: Packet -> Int
+evalPacket (Const val _) = val
+evalPacket (Op 0 _ sub) = sum $ map evalPacket sub
+evalPacket (Op 1 _ sub) = product $ map evalPacket sub
+evalPacket (Op 2 _ sub) = minimum $ map evalPacket sub
+evalPacket (Op 3 _ sub) = maximum $ map evalPacket sub
+evalPacket (Op 5 _ [sub1, sub2]) = if (evalPacket sub1) > (evalPacket sub2) then 1 else 0
+evalPacket (Op 6 _ [sub1, sub2]) = if (evalPacket sub1) < (evalPacket sub2) then 1 else 0
+evalPacket (Op 7 _ [sub1, sub2]) = if (evalPacket sub1) == (evalPacket sub2) then 1 else 0
 
 pull :: Int -> Parser [Bit]
 pull n = do
