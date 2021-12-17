@@ -20,6 +20,7 @@ main = do
   let best = bestLaunch launches
   putStrLn $ show $ best
   putStrLn $ show $ maxHeight $ snd best
+  putStrLn $ show $ length launches
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
