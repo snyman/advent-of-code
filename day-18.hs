@@ -47,6 +47,8 @@ main = do
   let finalSum = addAll nums
   putStrLn $ show $ finalSum
   putStrLn $ show $ magnitude finalSum
+  putStrLn "Largest Sum of Pairs by Magnitude"
+  putStrLn $ show $ largestPairMagnitude nums
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
@@ -57,6 +59,12 @@ mapFirst _ _ [] = []
 mapFirst pred act (a:as)
   | pred a = act a:as
   | otherwise = a:mapFirst pred act as
+
+cmpFst :: Ord a => (a, b) -> (a, b) -> Ordering
+cmpFst (a1, _) (a2, _) = a1 `compare` a2
+
+cmpSnd :: Ord b => (a, b) -> (a, b) -> Ordering
+cmpSnd (_, b1) (_, b2) = b1 `compare` b2
 
 data Sf = Pair Sf Sf | Leaf Int deriving(Eq)
 
@@ -190,3 +198,9 @@ addAll = foldl1 add
 magnitude :: Sf -> Int
 magnitude (Leaf n) = n
 magnitude (Pair l r) = 3 * magnitude l + 2 * magnitude r
+
+largestPairMagnitude :: [Sf] -> (Int, (Sf, Sf))
+largestPairMagnitude sfs = maximumBy cmpFst $ do
+  l <- sfs
+  r <- sfs
+  if l /= r then return (magnitude $ l `add` r, (l, r)) else []
