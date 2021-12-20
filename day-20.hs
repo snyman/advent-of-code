@@ -15,14 +15,19 @@ main = do
   (ehc, bitmap) <- fmap parseInput getContents
   putStrLn $ show ehc
   let enhance = enhanceBitmap ehc
-  let bitmap' = enhance bitmap
-  let bitmap'' = enhance bitmap'
+  let bitmap' = composeN enhance 2 bitmap
   printBitmap bitmap
   putStrLn ""
   printBitmap bitmap'
+  print $ count bitmap'
   putStrLn ""
+  let bitmap'' = composeN enhance 48 bitmap'
   printBitmap bitmap''
   print $ count bitmap''
+
+composeN :: (a -> a) -> Int -> a -> a
+composeN _ 0 a = a
+composeN fn n a = composeN fn (n-1) (fn a)
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
