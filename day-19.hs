@@ -19,9 +19,11 @@ main = do
   putStrLn $ show $ commonPoints (scanners !! 0) (scanners !! 1)
   putStrLn $ show $ findTransform $ commonPoints (scanners !! 0) (scanners !! 1)
   putStrLn $ show $ createContext scanners
-  let allCoords = unifyCoords scanners
-  putStrLn $ show $ allCoords
-  putStrLn $ show $ S.size allCoords
+  let (beaconCoords, scannerCoords) = unifyCoords scanners
+  putStrLn $ show $ beaconCoords
+  putStrLn $ show $ S.size beaconCoords
+  putStrLn $ show $ scannerCoords
+  putStrLn $ show $ maximum $ manhattans $ S.toList scannerCoords
 
 biSplit :: Eq a => [a] -> [a] -> ([a], [a])
 biSplit delim s = (a, concat (b:c))
@@ -140,13 +142,16 @@ diff (x, y, z) (x', y', z') = (x - x', y - y', z - z')
 plus :: Coord -> Coord -> Coord
 plus (x, y, z) (x', y', z') = (x + x', y + y', z + z')
 
+manhattan :: Coord -> Coord -> Int
+manhattan (x, y, z) (x', y', z') = abs (x - x') + abs (y - y') + abs (z - z')
+
 findTransform :: [(Coord, Coord)] -> Maybe Transform
 findTransform pairs = find ((==1) . S.size . diffs) allTransforms
   where
     diffs tx = S.fromList $ map (\(c1, c2) -> c1 `diff` (transform tx c2)) pairs
 
-unifyCoords :: [Scanner] -> S.Set Coord
-unifyCoords ss = foldl foldCoords S.empty $ zip [0..] $ map S.fromList ss
+unifyCoords :: [Scanner] -> (S.Set Coord, S.Set Coord)
+unifyCoords ss = (beaconCoords, scannerCoords)
   where
     scannerMap = M.fromList $ zip [0..] ss
     visited = S.singleton 0
@@ -156,6 +161,8 @@ unifyCoords ss = foldl foldCoords S.empty $ zip [0..] $ map S.fromList ss
     startCtx = Context visited unvisited relation transforms
     ctx@(Context _ _ _ finalTxs) = execState (Main.traverse $ mergeScanner ss) startCtx
     foldCoords coords (idx, scn) = coords `S.union` (S.map (finalTxs M.! idx) scn)
+    beaconCoords = foldl foldCoords S.empty $ zip [0..] $ map S.fromList ss
+    scannerCoords = S.fromList $ map (\tx -> tx (0,0,0)) $ M.elems finalTxs
 
 createContext :: [Scanner] -> Context
 createContext ss = startCtx
@@ -214,3 +221,8 @@ nextPairs (Context visited unvisited rel _) = do
   u <- S.toList unvisited
   if u `S.member` (rel M.! v) then [(v, u)] else []
 
+manhattans :: [Coord] -> [Int]
+manhattans cs = do
+    c1 <- cs
+    c2 <- cs
+    [manhattan c1 c2]
