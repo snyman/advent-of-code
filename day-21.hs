@@ -17,6 +17,11 @@ main = do
   let (finalScore, gameEnd) = runState playGame gameStart 
   print gameEnd
   print finalScore
+  putStrLn "---------------------------"
+  let qGameStart = qgame (p1, p2)
+  let (qFinalScore, qGameEnd) = runState playQuantumGame qGameStart
+  print qGameEnd
+  print qFinalScore
 
 composeN :: (a -> a) -> Int -> a -> a
 composeN _ 0 a = a
@@ -38,7 +43,7 @@ cmpFst (a1, _) (a2, _) = a1 `compare` a2
 cmpSnd :: Ord b => (a, b) -> (a, b) -> Ordering
 cmpSnd (_, b1) (_, b2) = b1 `compare` b2
 
-data Player = P { pos :: Int, score :: Int } deriving (Eq, Show)
+data Player = P { pos :: Int, score :: Int } deriving (Eq, Show, Ord)
 data Game = G { players :: (Player, Player), dice :: [Int], turns :: Int } deriving (Eq)
 
 instance Show Game where
@@ -93,3 +98,59 @@ playGame = do
   if done then gets finalScore else do
     takeTurn
     playGame
+
+data QGame = QG { qPlayers :: M.Map (Player, Player) Int, wins :: (Int, Int) } deriving (Eq, Show)
+
+qgame :: (Player, Player) -> QGame
+qgame ps = QG (M.singleton ps 1) (0, 0)
+
+quantumRoll :: [(Int, Int)]
+quantumRoll = M.assocs $ M.fromListWith (+) $ do
+  let faces = [1, 2, 3]
+  roll1 <- faces
+  roll2 <- faces
+  roll3 <- faces
+  return $ (roll1 + roll2 + roll3, 1)
+
+quantumMove :: M.Map (Player, Player) Int -> M.Map (Player, Player) Int
+quantumMove pMap = M.fromListWith (+) $ do
+  ((p1, p2), n1) <- M.assocs pMap
+  (move, n2) <- quantumRoll
+  return ((p2, movePlayer p1 move), n1 * n2)
+
+quantumTurn :: State QGame ()
+quantumTurn = do
+  players <- gets qPlayers
+  (w1, w2) <- gets wins
+  let players' = quantumMove players
+  modify $ \g -> g { qPlayers = players', wins = (w2, w1) }
+  collapseWins
+
+collapseWins :: State QGame ()
+collapseWins = do
+  players <- gets qPlayers
+  let (finished, ongoing) = M.partitionWithKey hasWinner players
+  mapM_ addWins $ M.assocs finished
+  modify $ \g -> g { qPlayers = ongoing }
+
+hasWinner :: (Player, Player) -> Int -> Bool
+hasWinner (p1, p2) _ = score p1 >= 21 || score p2 >= 21
+
+addWins :: ((Player, Player), Int) -> State QGame ()
+addWins ((p1, p2), n) = do
+  (w1, w2) <- gets wins
+  let wins' = if score p1 >= 1000 then (w1 + n, w2) else (w1, w2 + n)
+  modify $ \g -> g { wins = wins' }
+
+qIsDone :: QGame -> Bool
+qIsDone = (==0) . M.size . qPlayers
+
+qFinalScore :: QGame -> Int
+qFinalScore (QG _ (w1, w2)) = max w1 w2
+
+playQuantumGame :: State QGame Int
+playQuantumGame = do
+  done <- gets qIsDone
+  if done then gets qFinalScore else do
+    quantumTurn
+    playQuantumGame
